@@ -27,21 +27,34 @@ import de.hgaedke.irremote.ui.theme.IRRemoteTheme
 import de.hgaedke.irremote.websocket.SocketListener
 import de.hgaedke.irremote.websocket.WebSocketClient
 import androidx.compose.runtime.livedata.observeAsState
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 
 class MainActivity : ComponentActivity() {
     private lateinit var webSocketClient: WebSocketClient
 
     // required, because connectionState is changed from outside the Composable
     private val connectionStateLive = MutableLiveData<ConnectionState>(ConnectionState.CONNECTION_STATE_DISCONNECTED)
+    private val irStatusLive = MutableLiveData<IRStatus>()
 
     private val socketListener = object : SocketListener {
         override fun onOpen() {
             Log.d("WebSocket", "onOpen")
             connectionStateLive.postValue(ConnectionState.CONNECTION_STATE_CONNECTED)
+
+            // initially, request the internet radio status
+            webSocketClient.requestStatus()
         }
 
         override fun onMessage(message: String) {
             Log.d("WebSocket", "onMessage: $message")
+            try {
+                val irStatus: IRStatus = Json.decodeFromString<IRStatus>(message)
+                Log.d("WebSocket", "irStatus: $irStatus")
+                irStatusLive.postValue(irStatus)
+            } catch (e: SerializationException) {
+                Log.i("WebSocket", "onMessage: $message is not a valid IRStatus JSON message.\n$e")
+            }
         }
 
         override fun onClosed() {
@@ -56,70 +69,44 @@ class MainActivity : ComponentActivity() {
         webSocketClient = WebSocketClient.getInstance()
         webSocketClient.setListener(socketListener)
 
-        //webSocketClient.setSocketUrl("ws://10.0.2.2:8081") // test on emulated Android device, access server on development machine
-        webSocketClient.setSocketUrl("ws://192.168.178.39:8081") // run on real device, access Internet Radio in home network
+        webSocketClient.setSocketUrl("ws://10.0.2.2:8081") // test on emulated Android device, access server on development machine
+        //webSocketClient.setSocketUrl("ws://192.168.178.39:8081") // run on real device, access Internet Radio in home network
+
+        webSocketClient.connect()
 
         enableEdgeToEdge()
 
         setContent {
             IRRemoteTheme {
                 MainContent(
-                    connect = {
-                        webSocketClient.connect()
-                    },
-                    disconnect = {
-                        webSocketClient.disconnect()
-                    },
                     sendMessage = {message: String ->
-                        webSocketClient.sendMessage(message = message)
+                        webSocketClient.sendNotification(message = message)
                     },
                     connectionStateLive)
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+
+        webSocketClient.disconnect()
+    }
 }
 
 @Composable
 fun MainContent(
-    connect: () -> Unit = {},
-    disconnect: () -> Unit = {},
     sendMessage: (String) -> Unit = {},
     connectionStateLive: LiveData<ConnectionState> = MutableLiveData<ConnectionState>(ConnectionState.CONNECTION_STATE_DISCONNECTED)
 ) {
     // ------------------ connection state ------------------
     val connectionState: State<ConnectionState?> = connectionStateLive.observeAsState()
 
-    fun toggleConnectionState() {
-        if (connectionState.value == ConnectionState.CONNECTION_STATE_DISCONNECTED) {
-            connect()
-        } else if (connectionState.value == ConnectionState.CONNECTION_STATE_CONNECTED) {
-            disconnect()
-        }
-    }
-
     @Composable
-    fun CreateConnectionButtons() {
+    fun CreateConnectionStateInfo() {
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             Text(text = "Connection state:")
             Text(text = connectionState.value?.state.toString())
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(
-                onClick = {
-                    toggleConnectionState()
-                },
-                enabled = connectionState.value == ConnectionState.CONNECTION_STATE_DISCONNECTED
-            ) {
-                Text(text = "Connect")
-            }
-            Button(
-                onClick = {
-                    toggleConnectionState()
-                },
-                enabled = connectionState.value == ConnectionState.CONNECTION_STATE_CONNECTED
-            ) {
-                Text(text = "Disconnect")
-            }
         }
     }
 
@@ -129,7 +116,7 @@ fun MainContent(
     }
 
     Column(modifier = Modifier.padding(10.dp, 60.dp, 10.dp, 10.dp)) {
-        CreateConnectionButtons()
+        CreateConnectionStateInfo()
         HorizontalDivider(modifier = Modifier.padding(0.dp, 10.dp))
         TextField(value = textMessage.value,
             onValueChange = {
@@ -138,6 +125,7 @@ fun MainContent(
             label = {
                 Text(text = "Enter message")
             },
+            enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
         )
         Button(onClick = {
                 sendMessage(textMessage.value.text)
@@ -146,7 +134,9 @@ fun MainContent(
             content = {
                 Text (text = "Send")
             },
-            modifier = Modifier.padding(0.dp, 10.dp))
+            modifier = Modifier.padding(0.dp, 10.dp),
+            enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+        )
     }
 }
 

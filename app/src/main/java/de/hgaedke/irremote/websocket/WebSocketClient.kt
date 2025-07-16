@@ -59,10 +59,11 @@ class WebSocketClient {
     }
 
     //send
-    fun sendMessage(message: String) {
-        Log.d("WebSocket", "sendMessage($message)")
+    fun sendNotification(message: String) {
+        val jsonMessage = "{\"notification\": \"$message}"
+        Log.d("WebSocket", "sendMessage($jsonMessage)")
         if (::webSocket.isInitialized) {
-            webSocket.send(message)
+            webSocket.send(jsonMessage)
         }
     }
 
@@ -85,6 +86,13 @@ class WebSocketClient {
             webSocket.close(1000 /*normal closure*/, null /*reason*/)
         }
         enableReconnect = false
+    }
+
+    fun requestStatus() {
+        Log.d("WebSocket", "requestStatus()")
+        if (::webSocket.isInitialized) {
+            webSocket.send("{\"status\": \"get\"}")
+        }
     }
 
     // Handles reconnection locally; forwards certain calls to socketListener.
