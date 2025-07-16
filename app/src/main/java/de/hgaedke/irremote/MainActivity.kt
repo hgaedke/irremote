@@ -69,8 +69,8 @@ class MainActivity : ComponentActivity() {
         webSocketClient = WebSocketClient.getInstance()
         webSocketClient.setListener(socketListener)
 
-        webSocketClient.setSocketUrl("ws://10.0.2.2:8081") // test on emulated Android device, access server on development machine
-        //webSocketClient.setSocketUrl("ws://192.168.178.39:8081") // run on real device, access Internet Radio in home network
+        //webSocketClient.setSocketUrl("ws://10.0.2.2:8081") // test on emulated Android device, access server on development machine
+        webSocketClient.setSocketUrl("ws://192.168.178.39:8081") // run on real device, access Internet Radio in home network
 
         webSocketClient.connect()
 
