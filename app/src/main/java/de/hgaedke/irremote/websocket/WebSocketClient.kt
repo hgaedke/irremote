@@ -60,8 +60,16 @@ class WebSocketClient {
 
     //send
     fun sendNotification(message: String) {
-        val jsonMessage = "{\"notification\": \"$message}"
+        val jsonMessage = "{\"notification\": \"$message\"}"
         Log.d("WebSocket", "sendMessage($jsonMessage)")
+        if (::webSocket.isInitialized) {
+            webSocket.send(jsonMessage)
+        }
+    }
+
+    fun selectApp(app: String) {
+        val jsonMessage = "{\"app\": \"$app\"}"
+        Log.d("WebSocket", "selectApp($jsonMessage)")
         if (::webSocket.isInitialized) {
             webSocket.send(jsonMessage)
         }

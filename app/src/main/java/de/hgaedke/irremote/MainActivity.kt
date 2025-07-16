@@ -82,7 +82,14 @@ class MainActivity : ComponentActivity() {
                     sendMessage = {message: String ->
                         webSocketClient.sendNotification(message = message)
                     },
-                    connectionStateLive)
+                    requestStatus = {
+                        webSocketClient.requestStatus()
+                    },
+                    selectApp = {app: String ->
+                        webSocketClient.selectApp(app)
+                    },
+                    connectionStateLive,
+                    irStatusLive)
             }
         }
     }
@@ -97,11 +104,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainContent(
     sendMessage: (String) -> Unit = {},
-    connectionStateLive: LiveData<ConnectionState> = MutableLiveData<ConnectionState>(ConnectionState.CONNECTION_STATE_DISCONNECTED)
+    requestStatus: () -> Unit = {},
+    selectApp: (String) -> Unit = {},
+    connectionStateLive: LiveData<ConnectionState> = MutableLiveData<ConnectionState>(ConnectionState.CONNECTION_STATE_DISCONNECTED),
+    irStatusLive: LiveData<IRStatus> = MutableLiveData<IRStatus>()
 ) {
-    // ------------------ connection state ------------------
     val connectionState: State<ConnectionState?> = connectionStateLive.observeAsState()
+    val irStatus: State<IRStatus?> = irStatusLive.observeAsState()
 
+    // ------------------ connection state ------------------
     @Composable
     fun CreateConnectionStateInfo() {
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -118,7 +129,8 @@ fun MainContent(
     Column(modifier = Modifier.padding(10.dp, 60.dp, 10.dp, 10.dp)) {
         CreateConnectionStateInfo()
         HorizontalDivider(modifier = Modifier.padding(0.dp, 10.dp))
-        TextField(value = textMessage.value,
+        TextField(
+            value = textMessage.value,
             onValueChange = {
                 textMessage.value = it
             },
@@ -127,16 +139,80 @@ fun MainContent(
             },
             enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
         )
-        Button(onClick = {
+        Button(
+            onClick = {
                 sendMessage(textMessage.value.text)
                 textMessage.value = TextFieldValue("")
             },
             content = {
-                Text (text = "Send")
+                Text(text = "Send")
             },
             modifier = Modifier.padding(0.dp, 10.dp),
             enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
         )
+        HorizontalDivider(modifier = Modifier.padding(0.dp, 10.dp))
+        TextField(
+            value = irStatus.value.toString(),
+            onValueChange = {},
+            label = {
+                Text(text = "IRStatus")
+            },
+            enabled = false
+        )
+        Button(
+            onClick = {
+                requestStatus()
+            },
+            content = {
+                Text(text = "Update status")
+            },
+            modifier = Modifier.padding(0.dp, 10.dp),
+            enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+        )
+        HorizontalDivider(modifier = Modifier.padding(0.dp, 10.dp))
+        Text(text = "Select app:")
+        Row {
+            Button(
+                onClick = {
+                    selectApp("radio1")
+                },
+                content = {
+                    Text(text = "radio1")
+                },
+                modifier = Modifier.padding(0.dp, 10.dp),
+                enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+            )
+            Button(
+                onClick = {
+                    selectApp("radio2")
+                },
+                content = {
+                    Text(text = "radio2")
+                },
+                modifier = Modifier.padding(0.dp, 10.dp),
+                enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+            )
+            Button(
+                onClick = {
+                    selectApp("music")
+                },
+                content = {
+                    Text(text = "music")
+                },
+                modifier = Modifier.padding(0.dp, 10.dp),
+                enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+            )
+            Button(
+                onClick = {
+                    selectApp("video")
+                },
+                content = {
+                    Text(text = "video")
+                },
+                modifier = Modifier.padding(0.dp, 10.dp),
+                enabled = (connectionState.value === ConnectionState.CONNECTION_STATE_CONNECTED)
+            )
+        }
     }
 }
 
