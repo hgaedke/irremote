@@ -14,11 +14,11 @@ class WebSocketClient {
     private var enableReconnect = true
     private var client: OkHttpClient? = null
 
+    // singleton instance of WebSocket
     companion object {
         private lateinit var instance: WebSocketClient
         @JvmStatic
         @Synchronized
-        //This function gives singleton instance of WebSocket.
         fun getInstance(): WebSocketClient {
             synchronized(WebSocketClient::class) {
                 if (!::instance.isInitialized) {
@@ -43,7 +43,7 @@ class WebSocketClient {
         val request = Request.Builder().url(url = socketUrl).build()
         webSocket = client!!.newWebSocket(request, localWebSocketListener)
 
-        //this must me done else memory leak will be caused
+        // this must me done to prevent memory leak
         client!!.dispatcher.executorService.shutdown()
     }
 
@@ -58,7 +58,6 @@ class WebSocketClient {
         initWebSocket()
     }
 
-    //send
     fun sendNotification(message: String) {
         val jsonMessage = "{\"notification\": \"$message\"}"
         Log.d("WebSocket", "sendMessage($jsonMessage)")
@@ -75,19 +74,6 @@ class WebSocketClient {
         }
     }
 
-
-    //We can close socket by two way:
-
-    //1. websocket.webSocket.close(1000, "Dont need connection")
-    //This attempts to initiate a graceful shutdown of this web socket.
-    //Any already-enqueued messages will be transmitted before the close message is sent but
-    //subsequent calls to send will return false and their messages will not be enqueued.
-
-    //2. websocket.cancel()
-    //This immediately and violently release resources held by this web socket,
-    //discarding any enqueued messages.
-
-    //Both does nothing if the web socket has already been closed or canceled.
     fun disconnect() {
         Log.d("WebSocket", "disconnect()")
         if (::webSocket.isInitialized) {
@@ -105,25 +91,23 @@ class WebSocketClient {
 
     // Handles reconnection locally; forwards certain calls to socketListener.
     private val localWebSocketListener = object : WebSocketListener() {
-        //called when connection succeeded
+        // called when connection established successfully
         override fun onOpen(webSocket: WebSocket, response: Response) {
             Log.d("WebSocket", "onOpen()")
             socketListener?.onOpen()
         }
 
-        //called when text message received
+        // called when message received from internet radio
         override fun onMessage(webSocket: WebSocket, text: String) {
             Log.d("WebSocket", "onMessage($text)")
             socketListener?.onMessage(text)
         }
 
-        //called when binary message received
         override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
             Log.d("WebSocket", "onClosing()")
         }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-            //called when no more messages and the connection should be released
             Log.d("WebSocket", "onClosed()")
             socketListener?.onClosed()
 

@@ -33,7 +33,7 @@ import kotlinx.serialization.json.Json
 class MainActivity : ComponentActivity() {
     private lateinit var webSocketClient: WebSocketClient
 
-    // required, because connectionState is changed from outside the Composable
+    // required, because connectionState and irStatus are changed from outside the Composable
     private val connectionStateLive = MutableLiveData<ConnectionState>(ConnectionState.CONNECTION_STATE_DISCONNECTED)
     private val irStatusLive = MutableLiveData<IRStatus>()
 
@@ -126,6 +126,10 @@ fun MainContent(
         mutableStateOf(TextFieldValue(""))
     }
 
+    // The following is a quick proof of concept only.
+    // A more useful implementation would use a tab bar to switch
+    // between status display, notification and app (radio1, radio2,
+    // music, video) controls.
     Column(modifier = Modifier.padding(10.dp, 60.dp, 10.dp, 10.dp)) {
         CreateConnectionStateInfo()
         HorizontalDivider(modifier = Modifier.padding(0.dp, 10.dp))
